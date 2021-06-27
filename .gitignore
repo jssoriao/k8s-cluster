@@ -1,0 +1,5 @@
+.terraform/
+*.sh
+default.config
+dockerhub-key.yaml
+tls.yaml

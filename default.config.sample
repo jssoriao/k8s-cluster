@@ -1,0 +1,7 @@
+bucket = "<YOUR LINODE BUCKET NAME>"
+key = "path/to/your/tfstate"
+region = "<LINODE REGION>"
+endpoint = "<LINODE REGION>.linodeobjects.com"
+skip_credentials_validation = true
+access_key = "<LINODE OBJECT STORE ACCESS KEY>"
+secret_key = "<LINODE OBJECT STORE SECRET ACCESS KEY>"

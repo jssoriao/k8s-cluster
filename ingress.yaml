@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blog-ingress
+  labels:
+    name: blog-ingress
+  namespace: blog
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  tls:
+    - hosts:
+        - jssoriao.dev
+      secretName: tls-secret
+  rules:
+    - host: jssoriao.dev
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: blog-service
+                port:
+                  number: 8080
