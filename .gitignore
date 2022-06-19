@@ -3,3 +3,6 @@
 default.config
 dockerhub-key.yaml
 tls.yaml
+**.tfstate
+**.tfstate.*
+kubeconfig.yaml

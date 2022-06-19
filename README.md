@@ -52,20 +52,90 @@ data:
   .dockerconfigjson: <base64 encoded dockerconfigjson>
 ```
 
-### Ingress Controller
+Another option is the following command.
+
+```bash
+kubectl create secret docker-registry dockerhub-key \
+    --docker-server=<registry-server e.g. https://index.docker.io/v1/ for dockerhub> \
+    --docker-username=<username> \
+    --docker-password=<password> \
+    --docker-email=<email> \
+    --namespace blog
+```
+
+## Install Helm
+
+[Link](https://helm.sh/docs/intro/install/)
+
+## Ingress Controller
+
+[Guide](https://www.linode.com/docs/guides/how-to-deploy-nginx-ingress-on-linode-kubernetes-engine/)
 
 Install the [ingress-nginx controller](https://kubernetes.github.io/ingress-nginx/). We will use helm to do this.
 
 ```bash
-helm repo add <name> https://kubernetes.github.io/ingress-nginx
-helm repo update
-
-helm install <name> ingress-nginx/ingress-nginx
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
 ```
 
-## Create TLS Secret and Ingress
+> NOTE: This will create a Linode NodeBalancer that will also incur cost alongside the LKE.
 
-## Issues Encountered
+## Create IngressClass and Ingress objects
 
-- GoDaddy provides csr and private key initially for the SSL. The csr is not the certificate you will use in the TLS secret. You can download the actual certificate file from GoDaddy and use it.
-- The private key could be in utf8bom format. Change it to utf8 to be able to create the tls secret successfully.
+[Securing NGINX-Ingress](https://cert-manager.io/docs/tutorials/acme/nginx-ingress/)
+
+```bash
+kubectl apply -f ingress-class.yaml
+kubectl apply -f ingress.yaml
+```
+
+## Install and configure cert-manager and issuer
+
+Install cert-manager
+
+```bash
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm install \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.8.1 \
+  --set installCRDs=true
+```
+
+Create staging and production issuers for Let's Encrypt. Edit the email field with your own email.
+
+> Take care to ensure that your Issuers are created in the same namespace as the certificates you want to create
+
+```bash
+# Staging Issuer
+kubectl create --edit -f https://raw.githubusercontent.com/cert-manager/website/master/content/docs/tutorials/acme/example/staging-issuer.yaml -n blog
+# Production Issuer
+kubectl create --edit -f https://raw.githubusercontent.com/cert-manager/website/master/content/docs/tutorials/acme/example/production-issuer.yaml -n blog
+```
+
+Modify the ingress manifest to use an annotation which will make the cert-manager automatically request for a certificate and create a tls secret.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+---
+metadata:
+  annotations:
+    cert-manager.io/issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - subdomain.example.com
+      secretName: tls-secret
+  ...
+```
+
+Verify that the certificate is properly created.
+
+```bash
+kubectl get certificate -n blog
+```
